@@ -1,0 +1,250 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Apple Design System - Light Mode */
+    --apple-bg: #F5F5F7;
+    --apple-bg-dark: #000000;
+    --apple-card: #FFFFFF;
+    --apple-card-dark: #1C1C1E;
+    --apple-blue: #0071E3;
+    --apple-blue-hover: #0077ED;
+    --apple-text: #1D1D1F;
+    --apple-text-secondary: #86868B;
+    --apple-text-tertiary: #8E8E93;
+    --apple-border: #D2D2D7;
+    --apple-border-light: rgba(0, 0, 0, 0.06);
+    --apple-green: #34C759;
+    --apple-red: #FF3B30;
+    --apple-yellow: #FFCC00;
+    --apple-orange: #FF9500;
+    --apple-gray: #E5E5EA;
+
+    /* shadcn overrides for Apple aesthetic */
+    --background: 0 0% 96.5%;
+    --foreground: 0 0% 11.4%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 11.4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 11.4%;
+    --primary: 211 100% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 211 100% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 82.4%;
+    --input: 0 0% 82.4%;
+    --ring: 211 100% 45%;
+    --radius: 1rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 11%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 11%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 211 100% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 211 100% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 20%;
+    --input: 240 3.7% 20%;
+    --ring: 211 100% 45%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  /* Apple Glassmorphism */
+  .apple-glass {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  .dark .apple-glass {
+    background: rgba(28, 28, 30, 0.72);
+  }
+
+  /* Apple Card */
+  .apple-card {
+    background: var(--apple-card);
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    border: none;
+    transition: all 0.3s ease-out;
+  }
+
+  .dark .apple-card {
+    background: var(--apple-card-dark);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.24);
+  }
+
+  .apple-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+  }
+
+  /* Apple Button */
+  .apple-btn {
+    background: var(--apple-blue);
+    color: white;
+    border-radius: 12px;
+    padding: 10px 20px;
+    font-weight: 500;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease-out;
+  }
+
+  .apple-btn:hover {
+    background: var(--apple-blue-hover);
+    transform: scale(1.02);
+  }
+
+  .apple-btn:active {
+    transform: scale(0.98);
+  }
+
+  /* Apple Input */
+  .apple-input {
+    background: rgba(120, 120, 128, 0.12);
+    border: none;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.2s ease-out;
+    width: 100%;
+  }
+
+  .apple-input:focus {
+    background: rgba(120, 120, 128, 0.16);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+  }
+
+  .apple-input::placeholder {
+    color: var(--apple-text-tertiary);
+  }
+
+  /* Apple Scrollbar */
+  .apple-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .apple-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .apple-scroll::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+  }
+
+  .apple-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.25);
+  }
+
+  .dark .apple-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .dark .apple-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  /* Skeleton loading */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.06) 25%,
+      rgba(0, 0, 0, 0.1) 50%,
+      rgba(0, 0, 0, 0.06) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+    border-radius: 8px;
+  }
+
+  @keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Timeline connector */
+  .timeline-connector {
+    position: absolute;
+    left: 15px;
+    top: 36px;
+    bottom: -8px;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--apple-border), transparent);
+  }
+
+  /* Rumor card */
+  .rumor-card {
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(142, 142, 147, 0.03),
+      rgba(142, 142, 147, 0.03) 10px,
+      rgba(142, 142, 147, 0.06) 10px,
+      rgba(142, 142, 147, 0.06) 20px
+    );
+    border: 1px dashed var(--apple-border);
+    border-radius: 12px;
+    opacity: 0.75;
+  }
+}
+
+@layer utilities {
+  .text-apple-blue { color: var(--apple-blue); }
+  .text-apple-text { color: var(--apple-text); }
+  .text-apple-secondary { color: var(--apple-text-secondary); }
+  .text-apple-tertiary { color: var(--apple-text-tertiary); }
+  .bg-apple-bg { background-color: var(--apple-bg); }
+  .bg-apple-card { background-color: var(--apple-card); }
+}
