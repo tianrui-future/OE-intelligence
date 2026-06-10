@@ -4,7 +4,7 @@
  */
 import type { SearchRequest, SearchResponse } from '@/types';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
+const API_BASE =  = import..meta..env..VITE_API_BASE ||  || 'https://oe-intelligence.onrender.com';;
 
 export async function searchOrgIntelligence(req: SearchRequest): Promise<SearchResponse> {
   const resp = await fetch(`${API_BASE}/api/search`, {
