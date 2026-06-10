@@ -257,13 +257,14 @@ def extract_structured_data(raw_content: str, company: str, business_line: Optio
                 )
             ))
     
+    
     return {
-        "nodes": [n.model_dump() for n in nodes],
-        "edges": [e.model_dump() for e in edges],
-        "timeline": [t.model_dump() for t in timeline],
-        "executive_flow": [ef.model_dump() for ef in executive_flow],
-        "rumors": rumors
-    }
+    "nodes": [n.dict() for n in nodes],
+    "edges": [e.dict() for e in edges],
+    "timeline": [t.dict() for t in timeline],
+    "executive_flow": [ef.dict() for ef in executive_flow],
+    "rumors": rumors
+}
 
 
 # ============ API Endpoints ============
@@ -392,18 +393,36 @@ credibility 规则：
     if not has_data:
         message = f"未检索到{company}-{business_line or '全公司'}近3个月的组织架构调整公开报道"
     
-    return SearchResponse(
-        company=company,
-        business_line=business_line,
-        query_time=datetime.now().isoformat(),
-        nodes=[OrgNode(**n) for n in main_nodes],
-        edges=[OrgEdge(**e) for e in structured.get("edges", [])],
-        timeline=[TimelineEvent(**t) for t in main_timeline],
-        executive_flow=[ExecutiveFlow(**ef) for ef in structured.get("executive_flow", [])],
-        has_data=has_data,
-        message=message,
-        rumors=rumors
-    )
+    
+    # 转换 dict 为模型对象
+node_objs = []
+for n in main_nodes:
+    n.pop("metadata", None)  # 简化处理
+    node_objs.append(OrgNode(**n))
+
+edge_objs = [OrgEdge(**e) for e in structured.get("edges", [])]
+timeline_objs = []
+for t in main_timeline:
+    t.pop("metadata", None)
+    timeline_objs.append(TimelineEvent(**t))
+
+exec_objs = []
+for ef in structured.get("executive_flow", []):
+    ef.pop("metadata", None)
+    exec_objs.append(ExecutiveFlow(**ef))
+
+return SearchResponse(
+    company=company,
+    business_line=business_line,
+    query_time=datetime.now().isoformat(),
+    nodes=node_objs,
+    edges=edge_objs,
+    timeline=timeline_objs,
+    executive_flow=exec_objs,
+    has_data=has_data,
+    message=message,
+    rumors=rumors
+)
 
 
 @app.post("/api/compare")
