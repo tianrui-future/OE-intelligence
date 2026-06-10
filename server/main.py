@@ -410,8 +410,8 @@ exec_objs = []
 for ef in structured.get("executive_flow", []):
     ef.pop("metadata", None)
     exec_objs.append(ExecutiveFlow(**ef))
-
-return SearchResponse(
+    
+    return SearchResponse(
     company=company,
     business_line=business_line,
     query_time=datetime.now().isoformat(),
