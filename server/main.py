@@ -40,7 +40,7 @@ app.add_middleware(
 )
 
 
-# ============ Pydantic Models (inline to avoid import issues) ============
+# ============ Pydantic Models (v1 compatible) ============
 
 class SearchRequest(BaseModel):
     company: str
@@ -49,7 +49,7 @@ class SearchRequest(BaseModel):
 
 class SourceMetadata(BaseModel):
     source_url: str
-    credibility: str  # "official" | "authoritative" | "unverified"
+    credibility: str
     update_time: str
 
 
@@ -85,8 +85,8 @@ class ExecutiveFlow(BaseModel):
     id: str
     name: str
     title: str
-    flow_type: str  # "inflow" | "outflow"
-    status: str  # "confirmed" | "pending" | "rumor"
+    flow_type: str
+    status: str
     from_company: Optional[str] = None
     to_company: Optional[str] = None
     date: str
@@ -138,7 +138,6 @@ async def call_kimi_with_search(system_prompt: str, user_query: str) -> str:
             resp.raise_for_status()
             data = resp.json()
             
-            # Extract content from response
             content = ""
             if "choices" in data and len(data["choices"]) > 0:
                 choice = data["choices"][0]
@@ -166,7 +165,6 @@ def build_search_queries(company: str, business_line: Optional[str]) -> List[str
 
 def parse_date_from_text(text: str) -> Optional[str]:
     """从文本中提取日期"""
-    # Match YYYY-MM-DD or YYYY-MM
     patterns = [
         r'(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})',
         r'(\d{4})[年/-](\d{1,2})',
@@ -211,7 +209,6 @@ def extract_structured_data(raw_content: str, company: str, business_line: Optio
     executive_flow: List[ExecutiveFlow] = []
     rumors: List[Dict] = []
     
-    # Try to find JSON block in response
     json_match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', raw_content, re.DOTALL)
     if json_match:
         try:
@@ -230,19 +227,14 @@ def extract_structured_data(raw_content: str, company: str, business_line: Optio
                     for ef in parsed["executive_flow"]:
                         executive_flow.append(ExecutiveFlow(**ef))
         except Exception:
-            pass  # Fall through to text parsing
+            pass
     
-    # If no structured JSON, generate from text analysis
     if not nodes and not timeline and not executive_flow:
-        # Generate a basic structure from the raw content
-        # This is fallback - the LLM should ideally return JSON
         current_date = datetime.now().strftime("%Y-%m-%d")
         current_month = datetime.now().strftime("%Y-%m")
         
-        # Check if there's any substantive content
         lines = [l.strip() for l in raw_content.split('\n') if l.strip()]
         if len(lines) > 3:
-            # Create a single timeline entry for the search result
             timeline.append(TimelineEvent(
                 id=f"evt_{company}_001",
                 date=current_date,
@@ -257,14 +249,13 @@ def extract_structured_data(raw_content: str, company: str, business_line: Optio
                 )
             ))
     
-    
     return {
-    "nodes": [n.dict() for n in nodes],
-    "edges": [e.dict() for e in edges],
-    "timeline": [t.dict() for t in timeline],
-    "executive_flow": [ef.dict() for ef in executive_flow],
-    "rumors": rumors
-}
+        "nodes": [n.dict() for n in nodes],
+        "edges": [e.dict() for e in edges],
+        "timeline": [t.dict() for t in timeline],
+        "executive_flow": [ef.dict() for ef in executive_flow],
+        "rumors": rumors
+    }
 
 
 # ============ API Endpoints ============
@@ -283,9 +274,6 @@ async def health():
 async def search_org_intelligence(req: SearchRequest):
     """
     搜索公司组织架构情报
-    1. 调用 Kimi API 进行 $web_search
-    2. 检索关键词: 公司名 业务线 组织架构调整、高管变动、部门负责人
-    3. 返回结构化数据
     """
     company = req.company.strip()
     business_line = req.business_line.strip() if req.business_line else None
@@ -295,7 +283,6 @@ async def search_org_intelligence(req: SearchRequest):
     
     queries = build_search_queries(company, business_line)
     
-    # System prompt for structured extraction
     system_prompt = """你是一家企业情报分析专家。你的任务是基于网络搜索结果，提取公司组织架构调整信息。
 
 你必须返回严格格式化的 JSON，包含以下字段：
@@ -312,7 +299,6 @@ credibility 规则：
 如果近3个月没有检索到公开报道，nodes和timeline设为空数组，并在message中说明。
 确保所有 URL 完整可点击。不要编造不存在的信息。"""
 
-    # Combine all queries into one search
     user_query = f"""请搜索以下关键词并提取 {company} 公司{business_line or ''} 的组织架构信息：
 
 搜索关键词：
@@ -325,7 +311,6 @@ credibility 规则：
     try:
         raw_content = await call_kimi_with_search(system_prompt, user_query)
     except HTTPException:
-        # Return empty result with message
         return SearchResponse(
             company=company,
             business_line=business_line,
@@ -339,7 +324,6 @@ credibility 规则：
             rumors=[]
         )
     
-    # Check for no-data indicator in response
     no_data_indicators = ["未检索到", "没有", "暂无", "未找到", "未发现"]
     has_no_data = any(ind in raw_content for ind in no_data_indicators) and not any(
         key in raw_content for key in ["\"nodes\"", "nodes"]
@@ -359,10 +343,8 @@ credibility 规则：
             rumors=[]
         )
     
-    # Extract structured data
     structured = extract_structured_data(raw_content, company, business_line)
     
-    # Separate rumors
     all_nodes = structured.get("nodes", [])
     rumor_nodes = [n for n in all_nodes if n.get("is_rumor", False)]
     main_nodes = [n for n in all_nodes if not n.get("is_rumor", False)]
@@ -371,7 +353,6 @@ credibility 规则：
     rumor_timeline = [t for t in all_timeline if t.get("is_rumor", False)]
     main_timeline = [t for t in all_timeline if not t.get("is_rumor", False)]
     
-    # Build rumor list for display
     rumors = []
     for rn in rumor_nodes:
         rumors.append({
@@ -393,36 +374,18 @@ credibility 规则：
     if not has_data:
         message = f"未检索到{company}-{business_line or '全公司'}近3个月的组织架构调整公开报道"
     
-    
-    # 转换 dict 为模型对象
-node_objs = []
-for n in main_nodes:
-    n.pop("metadata", None)  # 简化处理
-    node_objs.append(OrgNode(**n))
-
-edge_objs = [OrgEdge(**e) for e in structured.get("edges", [])]
-timeline_objs = []
-for t in main_timeline:
-    t.pop("metadata", None)
-    timeline_objs.append(TimelineEvent(**t))
-
-exec_objs = []
-for ef in structured.get("executive_flow", []):
-    ef.pop("metadata", None)
-    exec_objs.append(ExecutiveFlow(**ef))
-    
     return SearchResponse(
-    company=company,
-    business_line=business_line,
-    query_time=datetime.now().isoformat(),
-    nodes=node_objs,
-    edges=edge_objs,
-    timeline=timeline_objs,
-    executive_flow=exec_objs,
-    has_data=has_data,
-    message=message,
-    rumors=rumors
-)
+        company=company,
+        business_line=business_line,
+        query_time=datetime.now().isoformat(),
+        nodes=[OrgNode(**n) for n in main_nodes],
+        edges=[OrgEdge(**e) for e in structured.get("edges", [])],
+        timeline=[TimelineEvent(**t) for t in main_timeline],
+        executive_flow=[ExecutiveFlow(**ef) for ef in structured.get("executive_flow", [])],
+        has_data=has_data,
+        message=message,
+        rumors=rumors
+    )
 
 
 @app.post("/api/compare")
@@ -465,7 +428,6 @@ credibility规则同之前。"""
 
     raw_content = await call_kimi_with_search(system_prompt, user_query)
     
-    # Parse diff
     diff_nodes = []
     json_match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', raw_content, re.DOTALL)
     if json_match:
