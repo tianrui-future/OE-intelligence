@@ -3,8 +3,13 @@ from flask_cors import CORS
 import os
 import json
 import re
+import logging
 from datetime import datetime
 import httpx
+
+# 强制开启详细日志
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
@@ -12,9 +17,12 @@ CORS(app)
 KIMI_API_KEY = os.getenv("KIMI_API_KEY", "")
 KIMI_BASE_URL = os.getenv("KIMI_BASE_URL", "https://api.moonshot.cn/v1")
 
+logger.info(f"服务启动 - KIMI_BASE_URL: {KIMI_BASE_URL}")
+logger.info(f"KIMI_API_KEY 是否配置: {bool(KIMI_API_KEY)}")
+
 @app.route('/')
 def home():
-    return jsonify({"status": "OE Intelligence Hub API", "version": "1.0.0"})
+    return jsonify({"status": "OE Intelligence Hub API", "version": "1.1.0"})
 
 @app.route('/health')
 def health():
@@ -26,10 +34,14 @@ def search():
     company = data.get('company', '').strip()
     business_line = data.get('business_line', '').strip() or None
     
+    logger.info(f"收到搜索请求: company={company}, business_line={business_line}")
+    
     if not company:
+        logger.warning("请求缺少公司名")
         return jsonify({"error": "Company name is required"}), 400
     
     if not KIMI_API_KEY:
+        logger.error("KIMI_API_KEY 未配置")
         return jsonify({"error": "KIMI_API_KEY not configured"}), 500
     
     headers = {
@@ -65,8 +77,9 @@ def search():
 
 按JSON格式返回。"""
 
+    # 关键修复：使用支持工具调用的模型
     payload = {
-        "model": "moonshot-v1-8k",
+        "model": "moonshot-v1-32k",  # 修复：8k 已下线，改用 32k
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_query}
@@ -75,6 +88,8 @@ def search():
         "temperature": 0.3
     }
     
+    logger.info(f"准备调用 Kimi API，模型: {payload['model']}")
+    
     try:
         resp = httpx.post(
             f"{KIMI_BASE_URL}/chat/completions",
@@ -82,25 +97,52 @@ def search():
             json=payload,
             timeout=120.0
         )
+        
+        logger.info(f"Kimi API 响应状态码: {resp.status_code}")
         resp.raise_for_status()
         data = resp.json()
+        
+        # 记录原始响应结构
+        logger.info(f"Kimi API 响应结构: {list(data.keys())}")
         
         content = ""
         if "choices" in data and len(data["choices"]) > 0:
             choice = data["choices"][0]
+            logger.info(f"choice 结构: {list(choice.keys())}")
+            
             if "message" in choice and "content" in choice["message"]:
                 content = choice["message"]["content"]
+                logger.info(f"Kimi 返回内容长度: {len(content)}")
+                logger.info(f"Kimi 返回前300字: {content[:300]}")
+            elif "message" in choice:
+                # 可能是工具调用结果
+                logger.info(f"message 内容: {choice['message']}")
+                if "tool_calls" in choice["message"]:
+                    logger.info(f"检测到工具调用: {choice['message']['tool_calls']}")
+        else:
+            logger.warning(f"响应中没有 choices: {data}")
         
-        # Try to extract JSON
+        # 尝试提取 JSON
         json_match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', content, re.DOTALL)
         if json_match:
             try:
                 result = json.loads(json_match.group(1).strip())
+                logger.info("成功从代码块解析 JSON")
                 return jsonify(result)
-            except:
-                pass
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON 解析失败: {e}")
+                logger.error(f"尝试解析的内容: {json_match.group(1).strip()[:200]}")
+        
+        # 尝试直接解析整个内容
+        try:
+            result = json.loads(content.strip())
+            logger.info("成功直接解析 JSON")
+            return jsonify(result)
+        except json.JSONDecodeError:
+            logger.warning("内容不是纯 JSON，使用 fallback")
         
         # Fallback
+        logger.info("返回 fallback 响应")
         return jsonify({
             "company": company,
             "raw_content": content,
@@ -109,7 +151,14 @@ def search():
             "executive_flow": []
         })
         
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP 错误: {e.response.status_code} - {e.response.text[:500]}")
+        return jsonify({"error": f"Kimi API HTTP error: {e.response.status_code}"}), 500
+    except httpx.RequestError as e:
+        logger.error(f"请求错误: {str(e)}")
+        return jsonify({"error": f"Request failed: {str(e)}"}), 500
     except Exception as e:
+        logger.error(f"未预期错误: {type(e).__name__}: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/compare', methods=['POST'])
