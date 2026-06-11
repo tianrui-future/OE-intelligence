@@ -84,7 +84,7 @@ def search():
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_query}
         ],
-        "tools": [{"type": "builtin_function", "function": {"name": "$web_search"}}],
+        "tools": [{"type": "builtin_function", "function": {"name": "web_search"}}],
         "temperature": 0.3
     }
     
