@@ -83,7 +83,9 @@ function App() {
                   }}
                 />
                 <span className="text-[#86868B]">
-                  {health.kimi_configured ? 'API就绪' : 'API未配置'}
+                  {health.status === 'ok' 
+                    ? (health.kimi_configured ? 'API就绪' : 'API未配置') 
+                    : '连接失败'}
                 </span>
               </div>
             )}
